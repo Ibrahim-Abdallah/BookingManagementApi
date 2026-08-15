@@ -1,4 +1,5 @@
 using BookingManagementApi.Entities;
+using BookingManagementApi.Common.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -9,12 +10,12 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
-        builder.Property(x => x.LastName).HasMaxLength(100).IsRequired();
-        builder.Property(x => x.Email).HasMaxLength(320).IsRequired();
-        builder.Property(x => x.NormalizedEmail).HasMaxLength(320).IsRequired();
-        builder.Property(x => x.PasswordHash).HasMaxLength(512).IsRequired();
-        builder.Property(x => x.Role).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.FirstName).HasMaxLength(UserConstraints.NameMaxLength).IsRequired();
+        builder.Property(x => x.LastName).HasMaxLength(UserConstraints.NameMaxLength).IsRequired();
+        builder.Property(x => x.Email).HasMaxLength(UserConstraints.EmailMaxLength).IsRequired();
+        builder.Property(x => x.NormalizedEmail).HasMaxLength(UserConstraints.EmailMaxLength).IsRequired();
+        builder.Property(x => x.PasswordHash).HasMaxLength(UserConstraints.PasswordHashMaxLength).IsRequired();
+        builder.Property(x => x.Role).HasMaxLength(UserConstraints.RoleMaxLength).IsRequired();
         builder.HasIndex(x => x.NormalizedEmail).IsUnique();
     }
 }
