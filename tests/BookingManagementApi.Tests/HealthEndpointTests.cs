@@ -1,12 +1,10 @@
-using Microsoft.AspNetCore.Mvc.Testing;
-
 namespace BookingManagementApi.Tests;
 
-public sealed class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HealthEndpointTests : IClassFixture<AuthenticationApiFactory>
 {
     private readonly HttpClient _client;
 
-    public HealthEndpointTests(WebApplicationFactory<Program> factory) => _client = factory.CreateClient();
+    public HealthEndpointTests(AuthenticationApiFactory factory) => _client = factory.CreateClient();
 
     [Fact]
     public async Task Health_returns_success()
