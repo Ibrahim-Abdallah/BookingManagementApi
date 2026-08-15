@@ -24,7 +24,8 @@ public sealed class AuthenticationApiFactory : WebApplicationFactory<Program>
                 ["Jwt:Issuer"] = "BookingManagementApi.Tests",
                 ["Jwt:Audience"] = "BookingManagementApi.Tests.Client",
                 ["Jwt:Key"] = JwtKey,
-                ["Jwt:AccessTokenExpirationMinutes"] = "15"
+                ["Jwt:AccessTokenExpirationMinutes"] = "15",
+                ["Jwt:RefreshTokenExpirationDays"] = "7"
             }));
         builder.ConfigureServices(services =>
         {

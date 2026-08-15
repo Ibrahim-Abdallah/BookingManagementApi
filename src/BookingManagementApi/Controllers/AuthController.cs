@@ -29,4 +29,22 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
             ? Unauthorized(new ErrorResponse("Invalid email or password."))
             : Ok(response);
     }
+
+    [HttpPost("refresh-token")]
+    [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> RefreshToken(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        var response = await authService.RefreshAsync(request, cancellationToken);
+        return response is null
+            ? Unauthorized(new ErrorResponse("Invalid refresh token."))
+            : Ok(response);
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        await authService.LogoutAsync(request, cancellationToken);
+        return NoContent();
+    }
 }

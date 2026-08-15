@@ -33,3 +33,12 @@ public sealed class LoginRequestValidator : AbstractValidator<LoginRequest>
         RuleFor(x => x.Password).NotEmpty();
     }
 }
+
+public sealed class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenRequest>
+{
+    public RefreshTokenRequestValidator()
+    {
+        RuleFor(x => x.RefreshToken).NotEmpty().Must(value => !string.IsNullOrWhiteSpace(value))
+            .WithMessage("Refresh token must not be whitespace.").MaximumLength(512);
+    }
+}
