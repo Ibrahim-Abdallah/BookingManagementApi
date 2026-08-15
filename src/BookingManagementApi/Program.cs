@@ -69,6 +69,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 var app = builder.Build();

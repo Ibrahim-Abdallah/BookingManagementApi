@@ -11,6 +11,8 @@ public sealed record UserResponse(
 public sealed record AuthResponse(
     string AccessToken,
     DateTimeOffset AccessTokenExpiresAtUtc,
+    string RefreshToken,
+    DateTimeOffset RefreshTokenExpiresAtUtc,
     UserResponse User);
 
 public sealed record ErrorResponse(string Error);
