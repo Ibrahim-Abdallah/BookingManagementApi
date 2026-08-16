@@ -23,4 +23,25 @@ public sealed class SchedulingOptionsTests
         Assert.False(isValid);
         Assert.Equal(4, results.Count);
     }
+
+    [Fact]
+    public void Configured_business_timezone_is_resolvable() =>
+        Assert.NotNull(TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time"));
+
+    [Fact]
+    public void Validation_rejects_unresolvable_business_timezone()
+    {
+        var options = new SchedulingOptions
+        {
+            BusinessTimeZoneId = "Definitely/Not-A-TimeZone",
+            SlotIntervalMinutes = 15,
+            HoldDurationMinutes = 5,
+            MaximumBookingHorizonDays = 90,
+            HoldCleanupIntervalSeconds = 60
+        };
+        var results = new List<ValidationResult>();
+
+        Assert.False(Validator.TryValidateObject(options, new ValidationContext(options), results, true));
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(SchedulingOptions.BusinessTimeZoneId)));
+    }
 }
