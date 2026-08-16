@@ -15,6 +15,7 @@ using Scalar.AspNetCore;
 using System.Security.Claims;
 using System.Text;
 using BookingManagementApi.Services.Catalog;
+using BookingManagementApi.Services.Scheduling;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,6 +75,7 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<ServiceCatalogService>();
 builder.Services.AddScoped<ResourceCatalogService>();
+builder.Services.AddScoped<ScheduleManagementService>();
 
 var app = builder.Build();
 

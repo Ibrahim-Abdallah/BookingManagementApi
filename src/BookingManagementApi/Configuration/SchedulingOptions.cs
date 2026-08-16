@@ -6,7 +6,7 @@ public sealed class SchedulingOptions
 {
     public const string SectionName = "Scheduling";
 
-    [Required]
+    [Required, TimeZoneId]
     public string BusinessTimeZoneId { get; init; } = string.Empty;
 
     [Range(1, int.MaxValue)]
@@ -26,4 +26,19 @@ public sealed class SchedulingOptions
 
     [Range(1, int.MaxValue)]
     public int HoldCleanupIntervalSeconds { get; init; }
+}
+
+public sealed class TimeZoneIdAttribute : ValidationAttribute
+{
+    public override bool IsValid(object? value)
+    {
+        if (value is not string id || string.IsNullOrWhiteSpace(id)) return true;
+        try
+        {
+            TimeZoneInfo.FindSystemTimeZoneById(id);
+            return true;
+        }
+        catch (TimeZoneNotFoundException) { return false; }
+        catch (InvalidTimeZoneException) { return false; }
+    }
 }
