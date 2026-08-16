@@ -14,6 +14,7 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using System.Security.Claims;
 using System.Text;
+using BookingManagementApi.Services.Catalog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +72,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<ServiceCatalogService>();
+builder.Services.AddScoped<ResourceCatalogService>();
 
 var app = builder.Build();
 
