@@ -16,6 +16,7 @@ using System.Security.Claims;
 using System.Text;
 using BookingManagementApi.Services.Catalog;
 using BookingManagementApi.Services.Scheduling;
+using BookingManagementApi.Services.Availability;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +77,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<ServiceCatalogService>();
 builder.Services.AddScoped<ResourceCatalogService>();
 builder.Services.AddScoped<ScheduleManagementService>();
+builder.Services.AddScoped<AvailabilityService>();
 
 var app = builder.Build();
 
