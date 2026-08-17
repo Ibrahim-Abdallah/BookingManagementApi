@@ -18,6 +18,8 @@ using BookingManagementApi.Services.Catalog;
 using BookingManagementApi.Services.Scheduling;
 using BookingManagementApi.Services.Availability;
 using BookingManagementApi.Services.Reservations;
+using BookingManagementApi.BackgroundServices;
+using BookingManagementApi.Services.Reporting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,6 +83,9 @@ builder.Services.AddScoped<ScheduleManagementService>();
 builder.Services.AddScoped<AvailabilityService>();
 builder.Services.AddScoped<ReservationHoldService>();
 builder.Services.AddScoped<ReservationService>();
+builder.Services.AddScoped<ExpiredReservationHoldProcessor>();
+builder.Services.AddHostedService<ExpiredReservationHoldService>();
+builder.Services.AddScoped<ReportingService>();
 
 var app = builder.Build();
 
