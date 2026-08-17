@@ -20,10 +20,13 @@ using BookingManagementApi.Services.Availability;
 using BookingManagementApi.Services.Reservations;
 using BookingManagementApi.BackgroundServices;
 using BookingManagementApi.Services.Reporting;
+using BookingManagementApi.Common.Errors;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
@@ -89,6 +92,8 @@ builder.Services.AddScoped<ReportingService>();
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -101,7 +106,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }))
+    .WithSummary("Check API health")
+    .WithDescription("Returns a simple healthy response when the API process is running.");
 
 app.Run();
 

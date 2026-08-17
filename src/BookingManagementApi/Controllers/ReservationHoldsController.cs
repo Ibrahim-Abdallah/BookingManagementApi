@@ -1,4 +1,5 @@
 using BookingManagementApi.Common.Security;
+using BookingManagementApi.Common.Errors;
 using BookingManagementApi.Contracts.Reservations;
 using BookingManagementApi.Services.Reservations;
 using Microsoft.AspNetCore.Authorization;
@@ -10,6 +11,8 @@ namespace BookingManagementApi.Controllers;
 public sealed class ReservationHoldsController(ReservationHoldService holds) : ControllerBase
 {
     [HttpPost]
+    [EndpointSummary("Create a reservation hold")]
+    [EndpointDescription("Creates a temporary concurrency-safe hold. The server derives the end time and expiry.")]
     public async Task<ActionResult<ReservationHoldResponse>> Create(
         CreateReservationHoldRequest request, CancellationToken ct)
     {
@@ -17,10 +20,10 @@ public sealed class ReservationHoldsController(ReservationHoldService holds) : C
         return operation.Result switch
         {
             ReservationHoldResult.Success success => Created($"/api/reservation-holds/{success.Response.ReservationId}", success.Response),
-            ReservationHoldResult.Invalid invalid => BadRequest(new ProblemDetails { Title = "Reservation hold validation failed.", Detail = invalid.Detail, Status = 400 }),
-            ReservationHoldResult.ServiceNotFound => NotFound(new ProblemDetails { Title = "Service not found.", Status = 404 }),
-            ReservationHoldResult.ResourceNotFound => NotFound(new ProblemDetails { Title = "Resource not found.", Status = 404 }),
-            ReservationHoldResult.Conflict => Conflict(new ProblemDetails { Title = "The requested slot is no longer available.", Status = 409 }),
+            ReservationHoldResult.Invalid invalid => BadRequest(ApiProblems.Create(400, "Reservation hold validation failed.", invalid.Detail)),
+            ReservationHoldResult.ServiceNotFound => NotFound(ApiProblems.Create(404, "Service not found.", "The requested service was not found.")),
+            ReservationHoldResult.ResourceNotFound => NotFound(ApiProblems.Create(404, "Resource not found.", "The requested resource was not found.")),
+            ReservationHoldResult.Conflict => Conflict(ApiProblems.Create(409, "Reservation conflict.", "The requested slot is no longer available.")),
             ReservationHoldResult.Unauthorized => Unauthorized(),
             _ => throw new InvalidOperationException("Unknown reservation hold result.")
         };

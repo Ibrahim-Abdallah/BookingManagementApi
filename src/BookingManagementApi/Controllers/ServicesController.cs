@@ -9,10 +9,12 @@ namespace BookingManagementApi.Controllers;
 public sealed class ServicesController(ServiceCatalogService catalog) : ControllerBase
 {
     [HttpGet]
+    [EndpointSummary("List active services")]
     public async Task<ActionResult<List<ServiceResponse>>> List(CancellationToken ct) =>
         Ok(await catalog.ListAsync(true, null, ct));
 
     [HttpGet("{id:guid}")]
+    [EndpointSummary("Get an active service")]
     public async Task<ActionResult<ServiceResponse>> Get(Guid id, CancellationToken ct)
     {
         var result = await catalog.GetAsync(id, true, ct);

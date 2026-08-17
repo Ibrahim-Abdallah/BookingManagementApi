@@ -9,10 +9,12 @@ namespace BookingManagementApi.Controllers;
 public sealed class ResourcesController(ResourceCatalogService catalog) : ControllerBase
 {
     [HttpGet]
+    [EndpointSummary("List active resources")]
     public async Task<ActionResult<List<ResourceResponse>>> List(CancellationToken ct) =>
         Ok(await catalog.ListAsync(true, null, ct));
 
     [HttpGet("{id:guid}")]
+    [EndpointSummary("Get an active resource")]
     public async Task<ActionResult<ResourceResponse>> Get(Guid id, CancellationToken ct)
     {
         var result = await catalog.GetAsync(id, true, ct);
