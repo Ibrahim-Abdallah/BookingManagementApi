@@ -37,7 +37,7 @@ public sealed class AuthenticationApiFactory : WebApplicationFactory<Program>
                 ["Scheduling:MinimumAdvanceMinutes"] = MinimumAdvanceMinutes.ToString(),
                 ["Scheduling:MaximumBookingHorizonDays"] = MaximumBookingHorizonDays.ToString(),
                 ["Scheduling:MinimumCancellationNoticeMinutes"] = "60",
-                ["Scheduling:HoldCleanupIntervalSeconds"] = "60"
+                ["Scheduling:HoldCleanupIntervalSeconds"] = "3600"
             }));
         builder.ConfigureServices(services =>
         {

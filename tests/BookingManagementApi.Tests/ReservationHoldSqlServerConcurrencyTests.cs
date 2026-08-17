@@ -176,7 +176,7 @@ public sealed class ReservationHoldSqlServerConcurrencyTests : IAsyncLifetime
 
 internal sealed class SqlServerApiFactory(DateTimeOffset now) : WebApplicationFactory<Program>
 {
-    private readonly string _databaseName = $"BookingManagementApiPhase07_{Guid.NewGuid():N}";
+    private readonly string _databaseName = $"BookingManagementApiSqlTests_{Guid.NewGuid():N}";
     private string ConnectionString
     {
         get
@@ -202,7 +202,7 @@ internal sealed class SqlServerApiFactory(DateTimeOffset now) : WebApplicationFa
             ["Jwt:Key"] = AuthenticationApiFactory.JwtKey, ["Jwt:AccessTokenExpirationMinutes"] = "15", ["Jwt:RefreshTokenExpirationDays"] = "7",
             ["Scheduling:BusinessTimeZoneId"] = "UTC", ["Scheduling:SlotIntervalMinutes"] = "15", ["Scheduling:HoldDurationMinutes"] = "5",
             ["Scheduling:MinimumAdvanceMinutes"] = "30", ["Scheduling:MaximumBookingHorizonDays"] = "90",
-            ["Scheduling:MinimumCancellationNoticeMinutes"] = "60", ["Scheduling:HoldCleanupIntervalSeconds"] = "60"
+            ["Scheduling:MinimumCancellationNoticeMinutes"] = "60", ["Scheduling:HoldCleanupIntervalSeconds"] = "3600"
         }));
         builder.ConfigureServices(services =>
         {
