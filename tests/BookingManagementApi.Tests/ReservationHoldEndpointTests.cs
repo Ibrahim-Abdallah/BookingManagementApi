@@ -87,6 +87,30 @@ public sealed class ReservationHoldEndpointTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Post_lock_time_is_authoritative_for_expiry_conflicts_and_new_hold_timestamps()
+    {
+        var authoritativeNow = Now.AddMinutes(10);
+        await using var factory = new AuthenticationApiFactory
+        {
+            Clock = new SequencedClock(Now, authoritativeNow)
+        };
+        var graph = await SeedAsync(factory);
+        await AddReservationAsync(graph, "EXPIRES-WHILE-WAITING", ReservationStatus.Held,
+            "2026-08-20T09:00:00Z", "2026-08-20T09:30:00Z", Now.AddMinutes(5), factory);
+        using var client = Client(factory, graph.UserId, AppRoles.Customer);
+
+        var response = await Post(client, graph, "2026-08-20T09:00:00Z");
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        await using var scope = factory.Services.CreateAsyncScope();
+        var created = scope.ServiceProvider.GetRequiredService<AppDbContext>().Reservations
+            .Single(x => x.ReferenceNumber != "EXPIRES-WHILE-WAITING");
+        Assert.Equal(authoritativeNow, created.CreatedAtUtc);
+        Assert.Equal(authoritativeNow, created.UpdatedAtUtc);
+        Assert.Equal(authoritativeNow.AddMinutes(5), created.HoldExpiresAtUtc);
+    }
+
+    [Fact]
     public async Task Invalid_catalog_schedule_window_alignment_and_block_are_rejected()
     {
         var graph = await SeedAsync();
@@ -102,9 +126,9 @@ public sealed class ReservationHoldEndpointTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.BadRequest, (await Post(client, graph, "2026-08-20T10:00:00Z")).StatusCode);
     }
 
-    private async Task<Graph> SeedAsync()
+    private async Task<Graph> SeedAsync(AuthenticationApiFactory? factory = null)
     {
-        await using var scope = _factory.Services.CreateAsyncScope();
+        await using var scope = (factory ?? _factory).Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var user = new User { Id = Guid.NewGuid(), FirstName = "Test", LastName = "Customer", Email = $"{Guid.NewGuid():N}@example.com", NormalizedEmail = $"{Guid.NewGuid():N}@EXAMPLE.COM", PasswordHash = "x", Role = AppRoles.Customer, CreatedAtUtc = Now, UpdatedAtUtc = Now };
         var service = new Service { Id = Guid.NewGuid(), Name = "Consultation", DurationMinutes = 30, IsActive = true, CreatedAtUtc = Now, UpdatedAtUtc = Now };
@@ -116,9 +140,10 @@ public sealed class ReservationHoldEndpointTests : IAsyncLifetime
         return new(user.Id, service.Id, resource.Id);
     }
 
-    private async Task AddReservationAsync(Graph graph, string reference, ReservationStatus status, string start, string end, DateTimeOffset? expiry)
+    private async Task AddReservationAsync(Graph graph, string reference, ReservationStatus status, string start,
+        string end, DateTimeOffset? expiry, AuthenticationApiFactory? factory = null)
     {
-        await using var scope = _factory.Services.CreateAsyncScope();
+        await using var scope = (factory ?? _factory).Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Reservations.Add(new() { Id = Guid.NewGuid(), ReferenceNumber = reference, UserId = graph.UserId, ServiceId = graph.ServiceId, ResourceId = graph.ResourceId, StartsAtUtc = DateTimeOffset.Parse(start), EndsAtUtc = DateTimeOffset.Parse(end), Status = status, HoldExpiresAtUtc = expiry, CreatedAtUtc = Now, UpdatedAtUtc = Now, ServiceNameSnapshot = "Consultation", ResourceNameSnapshot = "Room A", ServiceDurationMinutesSnapshot = 30 });
         await db.SaveChangesAsync();
@@ -139,4 +164,9 @@ public sealed class ReservationHoldEndpointTests : IAsyncLifetime
 
     private sealed record Graph(Guid UserId, Guid ServiceId, Guid ResourceId);
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider { public override DateTimeOffset GetUtcNow() => now; }
+    private sealed class SequencedClock(DateTimeOffset first, DateTimeOffset subsequent) : TimeProvider
+    {
+        private int _calls;
+        public override DateTimeOffset GetUtcNow() => Interlocked.Increment(ref _calls) == 1 ? first : subsequent;
+    }
 }

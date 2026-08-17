@@ -26,7 +26,7 @@ public sealed class ReservationHoldService(
         if (request.StartsAtUtc.Offset != TimeSpan.Zero)
             return Invalid("StartsAtUtc must be expressed in UTC.");
 
-        var now = timeProvider.GetUtcNow();
+        var preflightNow = timeProvider.GetUtcNow();
         var service = await db.Services.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.ServiceId, ct);
         if (service is null) return new(new ReservationHoldResult.ServiceNotFound());
         if (!service.IsActive) return Invalid("The selected service is inactive.");
@@ -38,8 +38,8 @@ public sealed class ReservationHoldService(
             return Invalid("The selected resource does not support this service.");
 
         var endsAtUtc = request.StartsAtUtc.AddMinutes(service.DurationMinutes);
-        var earliest = now.AddMinutes(_options.MinimumAdvanceMinutes);
-        var latest = now.AddDays(_options.MaximumBookingHorizonDays);
+        var earliest = preflightNow.AddMinutes(_options.MinimumAdvanceMinutes);
+        var latest = preflightNow.AddDays(_options.MaximumBookingHorizonDays);
         if (request.StartsAtUtc < earliest) return Invalid("The requested start is inside the minimum advance window.");
         if (request.StartsAtUtc > latest) return Invalid("The requested start exceeds the booking horizon.");
 
@@ -72,10 +72,22 @@ public sealed class ReservationHoldService(
                 .SingleAsync(ct);
         }
 
+        var authoritativeNow = timeProvider.GetUtcNow();
+        if (request.StartsAtUtc < authoritativeNow.AddMinutes(_options.MinimumAdvanceMinutes))
+        {
+            if (transaction is not null) await transaction.RollbackAsync(ct);
+            return Invalid("The requested start is inside the minimum advance window.");
+        }
+        if (request.StartsAtUtc > authoritativeNow.AddDays(_options.MaximumBookingHorizonDays))
+        {
+            if (transaction is not null) await transaction.RollbackAsync(ct);
+            return Invalid("The requested start exceeds the booking horizon.");
+        }
+
         var conflicts = await db.Reservations.AsNoTracking().AnyAsync(x =>
             x.ResourceId == resource.Id && x.StartsAtUtc < endsAtUtc && x.EndsAtUtc > request.StartsAtUtc &&
             (x.Status == ReservationStatus.Confirmed ||
-             (x.Status == ReservationStatus.Held && x.HoldExpiresAtUtc > now)), ct);
+             (x.Status == ReservationStatus.Held && x.HoldExpiresAtUtc > authoritativeNow)), ct);
         if (conflicts)
         {
             if (transaction is not null) await transaction.RollbackAsync(ct);
@@ -88,7 +100,8 @@ public sealed class ReservationHoldService(
             Id = Guid.NewGuid(), ReferenceNumber = CreateReference(request.StartsAtUtc), UserId = userId,
             ResourceId = resource.Id, ServiceId = service.Id, StartsAtUtc = request.StartsAtUtc,
             EndsAtUtc = endsAtUtc, Status = ReservationStatus.Held,
-            HoldExpiresAtUtc = now.AddMinutes(_options.HoldDurationMinutes), CreatedAtUtc = now, UpdatedAtUtc = now,
+            HoldExpiresAtUtc = authoritativeNow.AddMinutes(_options.HoldDurationMinutes),
+            CreatedAtUtc = authoritativeNow, UpdatedAtUtc = authoritativeNow,
             ServiceNameSnapshot = service.Name, ResourceNameSnapshot = resource.Name,
             ServiceDurationMinutesSnapshot = service.DurationMinutes
         };
