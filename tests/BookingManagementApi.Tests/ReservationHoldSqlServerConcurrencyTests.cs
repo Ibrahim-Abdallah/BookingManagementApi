@@ -99,6 +99,34 @@ public sealed class ReservationHoldSqlServerConcurrencyTests : IAsyncLifetime
         Assert.Equal("EXISTING", rows[0].ReferenceNumber);
     }
 
+    [Fact]
+    public async Task Concurrent_reschedules_to_same_interval_produce_one_success_and_leave_loser_unchanged()
+    {
+        var graph = await SeedAsync(1);
+        var firstId = Guid.NewGuid(); var secondId = Guid.NewGuid();
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Reservations.AddRange(
+                NewConfirmed(graph, firstId, graph.UserIds[0], "RESCHEDULE-A", "2026-08-20T09:00:00Z"),
+                NewConfirmed(graph, secondId, graph.UserIds[1], "RESCHEDULE-B", "2026-08-20T09:30:00Z"));
+            await db.SaveChangesAsync();
+        }
+        using var first = Client(graph.UserIds[0]); using var second = Client(graph.UserIds[1]);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var target = DateTimeOffset.Parse("2026-08-20T10:00:00Z");
+        var calls = new[] { RescheduleAfterGate(first, firstId, target, gate.Task), RescheduleAfterGate(second, secondId, target, gate.Task) };
+        gate.SetResult(); var responses = await Task.WhenAll(calls);
+        Assert.Equal(1, responses.Count(x => x.StatusCode == HttpStatusCode.OK));
+        Assert.Equal(1, responses.Count(x => x.StatusCode == HttpStatusCode.Conflict));
+
+        await using var verify = _factory.Services.CreateAsyncScope();
+        var rows = await verify.ServiceProvider.GetRequiredService<AppDbContext>().Reservations.AsNoTracking().OrderBy(x => x.ReferenceNumber).ToListAsync();
+        Assert.Equal(2, rows.Count); Assert.Single(rows, x => x.StartsAtUtc == target);
+        Assert.Contains(rows, x => x.ReferenceNumber == "RESCHEDULE-A" && x.StartsAtUtc == DateTimeOffset.Parse("2026-08-20T09:00:00Z") || x.ReferenceNumber == "RESCHEDULE-B" && x.StartsAtUtc == DateTimeOffset.Parse("2026-08-20T09:30:00Z"));
+        Assert.False(rows[0].StartsAtUtc < rows[1].EndsAtUtc && rows[0].EndsAtUtc > rows[1].StartsAtUtc);
+    }
+
     private async Task<Graph> SeedAsync(int resourceCount)
     {
         await using var scope = _factory.Services.CreateAsyncScope();
@@ -122,6 +150,14 @@ public sealed class ReservationHoldSqlServerConcurrencyTests : IAsyncLifetime
         Status = ReservationStatus.Confirmed, CreatedAtUtc = Now, UpdatedAtUtc = Now,
         ServiceNameSnapshot = "SQL Service", ResourceNameSnapshot = "SQL Resource 0", ServiceDurationMinutesSnapshot = 30 };
 
+    private Reservation NewConfirmed(Graph graph, Guid id, Guid userId, string reference, string start) => new()
+    {
+        Id = id, ReferenceNumber = reference, UserId = userId, ServiceId = graph.ServiceId, ResourceId = graph.ResourceIds[0],
+        StartsAtUtc = DateTimeOffset.Parse(start), EndsAtUtc = DateTimeOffset.Parse(start).AddMinutes(30), Status = ReservationStatus.Confirmed,
+        CreatedAtUtc = Now, UpdatedAtUtc = Now, ConfirmedAtUtc = Now, ServiceNameSnapshot = "SQL Service",
+        ResourceNameSnapshot = "SQL Resource 0", ServiceDurationMinutesSnapshot = 30
+    };
+
     private HttpClient Client(Guid userId)
     {
         var token = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken("BookingManagementApi.Tests", "BookingManagementApi.Tests.Client",
@@ -132,6 +168,8 @@ public sealed class ReservationHoldSqlServerConcurrencyTests : IAsyncLifetime
 
     private static async Task<HttpResponseMessage> SendAfterGate(HttpClient client, CreateReservationHoldRequest request, Task gate)
     { await gate; return await client.PostAsJsonAsync("/api/reservation-holds", request); }
+    private static async Task<HttpResponseMessage> RescheduleAfterGate(HttpClient client, Guid id, DateTimeOffset start, Task gate)
+    { await gate; return await client.PostAsJsonAsync($"/api/reservations/{id}/reschedule", new RescheduleReservationRequest(start)); }
 
     private sealed record Graph(Guid[] UserIds, Guid ServiceId, Guid[] ResourceIds);
 }
