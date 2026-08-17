@@ -80,6 +80,7 @@ builder.Services.AddScoped<ResourceCatalogService>();
 builder.Services.AddScoped<ScheduleManagementService>();
 builder.Services.AddScoped<AvailabilityService>();
 builder.Services.AddScoped<ReservationHoldService>();
+builder.Services.AddScoped<ReservationService>();
 
 var app = builder.Build();
 
