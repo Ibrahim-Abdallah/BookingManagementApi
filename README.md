@@ -120,7 +120,7 @@ EF Core InMemory is used only where relational correctness is not under test. Co
 
 ## Portfolio Screenshots
 
-These links intentionally remain unresolved until genuine running-API captures are added. Follow the [manual checklist](screenshots/README.md).
+These are genuine manual captures from the running API. See the [capture checklist](screenshots/README.md) for the verified content and safety requirements.
 
 ![Scalar API overview](screenshots/01-scalar-overview.png)
 ![Authentication](screenshots/02-authentication.png)
