@@ -10,6 +10,8 @@ namespace BookingManagementApi.Controllers.Admin;
 public sealed class ReportsController(ReportingService reporting) : ControllerBase
 {
     [HttpGet("reservations-summary")]
+    [EndpointSummary("Get a reservation operations summary")]
+    [EndpointDescription("Admin-only operational summary. Held and Expired reservations are excluded.")]
     public async Task<ActionResult<ReservationSummaryResponse>> ReservationsSummary(
         [FromQuery] ReservationSummaryQuery query,
         CancellationToken cancellationToken) =>

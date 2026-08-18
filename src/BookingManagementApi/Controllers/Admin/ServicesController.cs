@@ -10,10 +10,12 @@ namespace BookingManagementApi.Controllers.Admin;
 public sealed class ServicesController(ServiceCatalogService catalog) : ControllerBase
 {
     [HttpGet]
+    [EndpointSummary("List services for administration")]
     public async Task<ActionResult<List<ServiceResponse>>> List([FromQuery] bool? isActive, CancellationToken ct) =>
         Ok(await catalog.ListAsync(false, isActive, ct));
 
     [HttpGet("{id:guid}")]
+    [EndpointSummary("Get a service for administration")]
     public async Task<ActionResult<ServiceResponse>> Get(Guid id, CancellationToken ct)
     {
         var result = await catalog.GetAsync(id, false, ct);
@@ -21,6 +23,7 @@ public sealed class ServicesController(ServiceCatalogService catalog) : Controll
     }
 
     [HttpPost]
+    [EndpointSummary("Create a service")]
     public async Task<ActionResult<ServiceResponse>> Create(CreateServiceRequest request, CancellationToken ct)
     {
         var result = await catalog.CreateAsync(request, ct);
@@ -28,6 +31,7 @@ public sealed class ServicesController(ServiceCatalogService catalog) : Controll
     }
 
     [HttpPut("{id:guid}")]
+    [EndpointSummary("Update a service")]
     public async Task<ActionResult<ServiceResponse>> Update(Guid id, UpdateServiceRequest request, CancellationToken ct)
     {
         var result = await catalog.UpdateAsync(id, request, ct);
@@ -35,6 +39,7 @@ public sealed class ServicesController(ServiceCatalogService catalog) : Controll
     }
 
     [HttpPatch("{id:guid}/activation")]
+    [EndpointSummary("Activate or deactivate a service")]
     public async Task<IActionResult> SetActivation(Guid id, SetActivationRequest request, CancellationToken ct) =>
         await catalog.SetActivationAsync(id, request.IsActive, ct) ? NoContent() : NotFound();
 }

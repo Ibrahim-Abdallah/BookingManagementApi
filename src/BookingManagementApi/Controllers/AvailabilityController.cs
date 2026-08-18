@@ -9,6 +9,8 @@ namespace BookingManagementApi.Controllers;
 public sealed class AvailabilityController(AvailabilityService availability) : ControllerBase
 {
     [HttpGet]
+    [EndpointSummary("Search available booking slots")]
+    [EndpointDescription("Returns advisory slots. A slot is not guaranteed until a reservation hold is successfully created.")]
     public async Task<ActionResult<AvailabilityResponse>> Search(
         [FromQuery] AvailabilityQueryParameters query,
         CancellationToken ct)
